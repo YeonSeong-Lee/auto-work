@@ -1,0 +1,10 @@
+.env
+config.toml
+logs/
+drafts/
+out/
+__pycache__/
+*.pyc
+.omc/
+.DS_Store
+.claude/settings.local.json
