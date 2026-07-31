@@ -197,6 +197,44 @@ def set_cell(tc: ET.Element, text: str, palette: CharPrPalette | None = None) ->
     set_cell_lines(tc, text.split("\n"), palette)
 
 
+def take_picture(tc: ET.Element) -> ET.Element | None:
+    """셀에 박혀 있는 그림(작성자 칸의 서명 도장)을 복사해 온다.
+
+    셀 내용을 갈아끼우면 그림도 같이 지워지므로, 먼저 떼어 두었다가 다시 넣기 위한 것이다.
+    없으면 None을 준다 — 서명이 없는 양식도 그대로 쓸 수 있어야 한다.
+    """
+    pic = next(tc.iter(HP + "pic"), None)
+    return None if pic is None else copy.deepcopy(pic)
+
+
+def set_cell_parts(
+    tc: ET.Element,
+    parts: list[str | ET.Element],
+    palette: CharPrPalette | None = None,
+) -> None:
+    """셀을 한 문단으로 채우되, 글과 그림을 준 순서대로 이어 붙인다.
+
+    문자열은 <hp:t>로, ET.Element는 그대로(서명 <hp:pic> 등) 같은 run 안에 들어간다.
+    """
+    sublist = tc.find(HP + "subList")
+    paragraphs = sublist.findall(HP + "p")
+    if not paragraphs:
+        raise ValueError("셀에 문단이 없습니다.")
+
+    p = _paragraph_template(paragraphs[0], palette)
+    for old in paragraphs:
+        sublist.remove(old)
+
+    p.set("id", "0")
+    run = p.find(HP + "run")
+    for part in parts:
+        if isinstance(part, str):
+            ET.SubElement(run, HP + "t").text = part
+        else:
+            run.append(part)
+    sublist.append(p)
+
+
 def save(src: str | Path, dst: str | Path, parts: dict[str, ET.Element]) -> None:
     """지정한 XML 항목만 교체하고 나머지는 원본 순서·압축 방식 그대로 다시 담는다.
 

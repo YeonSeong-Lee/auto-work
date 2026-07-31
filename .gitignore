@@ -1,5 +1,6 @@
 .env
 config.toml
+notes/
 logs/
 drafts/
 out/
@@ -8,3 +9,6 @@ __pycache__/
 .omc/
 .DS_Store
 .claude/settings.local.json
+
+# 서명이 박힌 양식. 손글씨 서명은 개인 정보라 올리지 않는다 (빈 양식은 templates/daily.hwpx)
+templates/daily.signed.hwpx

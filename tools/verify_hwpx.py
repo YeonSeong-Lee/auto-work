@@ -141,9 +141,9 @@ def check_against_draft(cells, draft: dict) -> list[str]:
     if summary.count(".") > 1 or "\n" in summary:
         problems.append(f"요약이 한 문장이 아닙니다: {summary!r}")
 
-    # AC-6: 상세 셀은 비어 있으면 안 된다.
+    # AC-6: 상세 셀은 비어 있으면 안 된다. 내역이 없는 날은 '해당 없음'이 정상값이다.
     for name in ("inquiry", "counseling", "guidance"):
-        if cell_text(cells[CELL[name]]).strip() in ("", EMPTY) and name == "inquiry":
+        if not cell_text(cells[CELL[name]]).strip():
             problems.append(f"{name} 상세가 비어 있습니다 (내역이 없다면 '{EMPTY}' 명시)")
 
     return problems

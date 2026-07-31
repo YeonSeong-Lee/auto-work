@@ -13,11 +13,18 @@ import json
 import subprocess
 import sys
 import tempfile
+import xml.etree.ElementTree as ET
+import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 FIXTURE = ROOT / "fixtures" / "sample_draft.json"
-TEMPLATE = ROOT / "templates" / "daily.hwpx"
+
+sys.path.insert(0, str(ROOT / "tools"))
+from fill_hwpx import default_template  # noqa: E402
+
+# 실제로 쓰이는 양식을 그대로 검사한다. 서명본은 저장소에 없으므로 클론 직후엔 빈 양식이 잡힌다.
+TEMPLATE = ROOT / default_template()
 
 
 def run_case(name: str, draft: dict, workdir: Path, should_fail: bool) -> bool:
@@ -42,6 +49,58 @@ def run_case(name: str, draft: dict, workdir: Path, should_fail: bool) -> bool:
         ok = (verify.returncode != 0) == should_fail
 
     print(f"{'PASS' if ok else 'FAIL'}  {name:22} → {detail}")
+    return ok
+
+
+def run_naming_case() -> bool:
+    """제출용 파일명은 운영팀 요구 형식이라 어긋나면 반려된다."""
+    from fill_hwpx import default_out
+
+    draft = json.loads(FIXTURE.read_text(encoding="utf-8"))  # 2026-07-30 (목), 홍길동
+    expected = "[코디세이]0730(목)_홍길동_퍼실리테이터 일일업무일지.hwpx"
+    actual = default_out(draft)
+    ok = actual.name == expected and actual.parent.name == "out"
+
+    print(f"{'PASS' if ok else 'FAIL'}  {'제출용_파일명':22} → {actual}")
+    return ok
+
+
+def run_signature_case(workdir: Path) -> bool:
+    """작성자 칸의 서명 도장은 셀을 채워도 살아 있어야 한다.
+
+    셀 내용을 갈아끼우는 방식이라 서명이 조용히 지워지기 쉬운데, 눈으로 열어보기 전에는
+    드러나지 않는다. 양식에 서명이 없으면 검사할 것도 없으므로 건너뛴다.
+    """
+    from fill_hwpx import CELL
+    from hwpx import HP, find_daily_table, load_section, table_cells
+
+    def picture_ref(path: Path):
+        cells = table_cells(find_daily_table(load_section(path)))
+        pic = next(cells[CELL["author"]].iter(HP + "pic"), None)
+        return None if pic is None else ET.tostring(pic, encoding="unicode")
+
+    template_pic = picture_ref(TEMPLATE)
+    if template_pic is None:
+        print(f"SKIP  {'서명_유지':22} → 양식에 서명이 없습니다")
+        return True
+
+    draft = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    draft_path = workdir / "서명.json"
+    draft_path.write_text(json.dumps(draft, ensure_ascii=False), encoding="utf-8")
+    out = workdir / "서명.hwpx"
+    subprocess.run(
+        [sys.executable, str(ROOT / "tools/fill_hwpx.py"), "--in", str(draft_path),
+         "--template", str(TEMPLATE), "--out", str(out)],
+        check=True, capture_output=True, text=True, cwd=ROOT,
+    )
+
+    with zipfile.ZipFile(TEMPLATE) as a, zipfile.ZipFile(out) as b:
+        images = {n for n in a.namelist() if n.startswith("BinData/")}
+        same_bytes = all(n in b.namelist() and a.read(n) == b.read(n) for n in images)
+
+    ok = picture_ref(out) == template_pic and same_bytes
+    print(f"{'PASS' if ok else 'FAIL'}  {'서명_유지':22} → "
+          f"{'서명 그대로 유지됨' if ok else '서명이 사라지거나 바뀌었습니다'}")
     return ok
 
 
@@ -108,6 +167,9 @@ def main() -> None:
         results.append(ok)
         print(f"{'PASS' if ok else 'FAIL'}  {'원본_템플릿_역검증':22} → "
               f"{'예상대로 실패' if ok else '실패해야 하는데 통과함'}")
+
+        results.append(run_signature_case(work))
+        results.append(run_naming_case())
 
     print(f"\n전체: {'PASS' if all(results) else 'FAIL'} ({sum(results)}/{len(results)})")
     sys.exit(0 if all(results) else 1)
