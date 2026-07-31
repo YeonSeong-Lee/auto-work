@@ -273,6 +273,26 @@ python3 tools/upload_drive.py "out/<파일명>.hwpx"             # 실제 업로
 
 `[drive]`를 안 적으면 업로드를 건너뛰고 `out/`까지만 만든다. rclone 없이 쓰던 방식 그대로다.
 
+### 전용 client_id (권장)
+
+위 절차대로 `client_id`를 비워 두면 rclone 공용 client_id를 쓰는데, 실행할 때마다 이 경고가
+나온다.
+
+```
+This remote uses rclone's shared Google Drive client_id, which is being retired
+and will stop working during 2026.
+```
+
+**2026년 중 동작을 멈춘다고 예고된 상태다.** 지금은 쓸 수 있지만 어느 날 업로드가 통째로
+깨질 수 있으니, 계속 쓸 거라면 전용 client_id를 만들어 두는 편이 안전하다.
+[rclone 안내](https://rclone.org/drive/#making-your-own-client-id)대로 Google Cloud 콘솔에서
+OAuth 클라이언트(데스크톱 앱)를 만든 뒤 다시 설정하면 된다.
+
+```bash
+rclone config update gdrive client_id <발급받은_ID> client_secret <발급받은_시크릿>
+rclone config reconnect gdrive:      # 새 client_id로 다시 인증
+```
+
 ### 디스코드에서 수집하려면 (선택)
 
 ```bash
@@ -386,6 +406,7 @@ python3 tools/verify_hwpx.py "out/<파일명>.hwpx"        # 단건 검사
 | `rclone 리모트 'gdrive'가 없습니다` | `rclone config`로 만들지 않았거나 이름이 다르다. `[drive].remote`를 실제 이름에 맞춘다 |
 | `드라이브 폴더를 알아볼 수 없습니다` | `[drive].folder`에 폴더 주소나 ID가 아닌 값이 들어갔다. 드라이브에서 폴더를 열고 주소창을 그대로 붙여넣는다 |
 | 업로드가 403/404로 실패 | 그 계정에 폴더 쓰기 권한이 없거나 폴더 ID가 틀렸다. `--dry-run`으로 대상부터 확인 |
+| `shared Google Drive client_id ... being retired` | 경고일 뿐 아직 동작한다. 2026년 중 멈추므로 [전용 client_id](#전용-client_id-권장)를 만들어 두는 편이 안전하다 |
 
 `out/`, `drafts/`, `notes/`, `logs/`는 모두 git에 올라가지 않는다. 교육생 실명이 들어가기
 때문이다. 지워도 언제든 다시 만들 수 있다.
