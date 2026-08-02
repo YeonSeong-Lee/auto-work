@@ -206,25 +206,6 @@ claude -p "/daily-log --yes --date 2026-07-30"
 규칙만 보고 그게 Write를 포함한 모든 편집 도구를 덮는다. `Write(경로)`로 적으면 조용히
 무시된다 (`Write(notes/**) is not matched by file permission checks` 경고가 뜬다).
 
-### 매일 자동 초안 (macOS)
-
-```bash
-sed "s|__PROJECT__|$PWD|g" scripts/com.codysey.dailylog.plist \
-  > ~/Library/LaunchAgents/com.codysey.dailylog.plist
-launchctl load ~/Library/LaunchAgents/com.codysey.dailylog.plist
-```
-
-매일 18:00에 초안까지 만들어 두고 알림을 띄운다. 확인·확정은 `/daily-log`로 한다.
-리눅스면 cron에 `0 18 * * * /경로/scripts/draft.sh`를 넣으면 된다 (알림은 osascript라
-안 뜨고 `logs/`에만 남는다).
-
-**만들어 둔 초안은 다시 쓰지 않는다.** `/daily-log`로 확정할 때 `drafts/<날짜>.json`이 있으면
-그걸 이어받아 확인 단계부터 시작하므로, 그 사이에 파일을 직접 고쳐 뒀어도 그대로 살아 있다.
-초안을 버리고 처음부터 다시 쓰려면 `--redraft`를 준다.
-
-**`notes/<날짜>.md`가 있을 때만 동작한다.** 비대화형으로 도는 자리라 물어볼 상대가 없기
-때문이다. 메모가 없으면 건너뛰었다고 알림만 뜬다.
-
 ## 구글 드라이브 제출
 
 검사를 통과한 파일을 운영팀 폴더에 자동으로 올린다. 전송은 rclone에 맡긴다 — OAuth 토큰
@@ -321,7 +302,6 @@ python3 tools/fetch_discord.py --date 2026-07-30 --dry-run
 notes/<날짜>.md          하루치 메모 (직접 작성, git 제외)
 templates/note.md        메모 예시
 scripts/log.sh           터미널에서 한 번에 (claude -p 래퍼)
-scripts/draft.sh         매일 18:00 초안 (launchd)
 .claude/settings.json    헤드리스 실행에 필요한 권한 허용
 tools/fetch_discord.py   디스코드 → JSON        (결정론적, 선택)
 tools/hwpx.py            HWPX 읽기/쓰기 공용
