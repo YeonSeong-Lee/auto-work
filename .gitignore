@@ -4,6 +4,7 @@ notes/
 logs/
 drafts/
 out/
+monthly/
 __pycache__/
 *.pyc
 .omc/

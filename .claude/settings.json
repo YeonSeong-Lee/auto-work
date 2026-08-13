@@ -11,10 +11,12 @@
       "Read(drafts/**)",
       "Read(logs/**)",
       "Read(style/**)",
+      "Read(monthly/**)",
       "Read(config.toml)",
       "Edit(notes/**)",
       "Edit(drafts/**)",
       "Edit(style/**)",
+      "Edit(monthly/**)",
       "Edit(config.toml)"
     ]
   }
