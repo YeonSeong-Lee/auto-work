@@ -13,3 +13,8 @@ __pycache__/
 
 # 서명이 박힌 양식. 손글씨 서명은 개인 정보라 올리지 않는다 (빈 양식은 templates/daily.hwpx)
 templates/daily.signed.hwpx
+
+# 주간일지 양식. 운영팀에서 받은 파일에 서명과 교육생 실명이 이미 채워져 있어
+# 빈 양식조차 올리지 않는다. 쓰려면 운영팀 붙임2 파일을 이 경로에 직접 둔다.
+templates/weekly.hwpx
+templates/weekly.signed.hwpx

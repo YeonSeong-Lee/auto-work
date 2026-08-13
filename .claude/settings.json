@@ -3,9 +3,12 @@
     "allow": [
       "Bash(python3 tools/fill_hwpx.py:*)",
       "Bash(python3 tools/verify_hwpx.py:*)",
+      "Bash(python3 tools/fill_weekly_hwpx.py:*)",
+      "Bash(python3 tools/verify_weekly_hwpx.py:*)",
       "Bash(python3 tools/fetch_discord.py:*)",
       "Bash(python3 tools/upload_drive.py:*)",
       "Bash(python3 tests/test_fill_hwpx.py)",
+      "Bash(python3 tests/test_fill_weekly_hwpx.py)",
       "Bash(python3 tests/test_upload_drive.py)",
       "Read(notes/**)",
       "Read(drafts/**)",

@@ -75,6 +75,26 @@ python3 tests/test_fill_hwpx.py    # 전체 PASS면 준비 끝
 /daily-log --no-upload        # 드라이브에 올리지 않고 out/ 까지만
 ```
 
+### 주간 업무일지 (`/weekly-log`)
+
+붙임2 주간 업무일지를 제출용 HWPX로 만든다. 한 주치 일일 초안을 모아 서술 4칸을 채우고,
+출석률·미션 진도율·이탈 위험 교육생은 운영팀 시트 값을 물어서 받는다.
+
+```
+/weekly-log                    # 이번 주
+/weekly-log --last-week        # 지난주
+/weekly-log --draft            # 초안까지만
+/weekly-log --no-upload        # 드라이브에 올리지 않고 out/ 까지만
+```
+
+**양식 파일을 직접 두어야 한다.** 운영팀에서 받은 붙임2를 `templates/weekly.signed.hwpx`에
+복사한다. 이 파일은 git에서 제외된다 — 받은 파일에 서명과 지난 주 교육생 실명이 이미 채워져
+있기 때문이다. 양식이 없으면 `python3 tests/test_fill_weekly_hwpx.py`도 통째로 SKIP된다.
+
+그래서 검사기에 **잔존 검사**가 하나 더 있다. 양식이 빈 서식이 아니라 지난 주 제출본이라,
+출석률·진도율·이탈 위험 칸을 새 값으로 덮지 않으면 지난 주 숫자와 실명이 그대로 다시 나간다.
+값을 주지 않은 칸이 있으면 검사가 실패한다. 지난 주 값이 맞다고 확인했으면 `--allow-stale`.
+
 ### 월간일지에 붙일 주차 블록 (`/monthly-log`)
 
 월간일지에는 매주 다섯 항목을 손으로 채워야 한다 — 잘한 점, 개선할 점, 교육생 특이사항,
@@ -332,16 +352,21 @@ scripts/log.sh           터미널에서 한 번에 (claude -p 래퍼)
 .claude/settings.json    헤드리스 실행에 필요한 권한 허용
 tools/fetch_discord.py   디스코드 → JSON        (결정론적, 선택)
 tools/hwpx.py            HWPX 읽기/쓰기 공용
-tools/fill_hwpx.py       초안 JSON → HWPX       (결정론적)
-tools/verify_hwpx.py     제출 가능 여부 검사
+tools/fill_hwpx.py       초안 JSON → 일일 HWPX   (결정론적)
+tools/verify_hwpx.py     일일 제출 가능 여부 검사
+tools/fill_weekly_hwpx.py    초안 JSON → 주간 HWPX (결정론적)
+tools/verify_weekly_hwpx.py  주간 검사 (+ 지난 주 값 잔존 검사)
 tools/upload_drive.py    드라이브 업로드         (결정론적, 선택)
 .claude/skills/daily-log 분류·요약·문체         (판단)
+.claude/skills/weekly-log   한 주치 초안 + 운영팀 데이터 → 붙임2 주간일지 (판단)
 .claude/skills/monthly-log  한 주치 초안 → 월간일지 주차 블록 (판단)
+drafts/week-<월요일>.json    주간일지 초안 (git 제외)
 monthly/<주차>.md        월간일지에 붙여넣을 주차 블록 (git 제외)
 style/guide.md           일일 문체 기준 + 누적 규칙
-style/monthly.md         월간 문체 기준 + 누적 규칙 (개조식)
+style/monthly.md         주간·월간 서술 문체 기준 + 누적 규칙 (개조식)
 templates/daily.hwpx     원본 양식 (빈 양식)
 templates/daily.signed.hwpx  서명 박은 양식 (git 무시, 있으면 이걸 쓴다)
+templates/weekly.signed.hwpx 붙임2 주간 양식 (git 무시, 직접 둬야 한다)
 ```
 
 `style/guide.md`가 품질의 중심이다. 유일한 치명 오류가 문체이므로, 초안을 고칠 때마다
@@ -423,20 +448,26 @@ python3 tools/verify_hwpx.py "out/<파일명>.hwpx"        # 단건 검사
 
 ## 다른 과정에 쓰려면
 
-이 저장소는 「코디세이」붙임1 양식에 맞춰져 있다. 다른 서식으로 옮기려면 두 군데를 본다.
+이 저장소는 「코디세이」붙임1·붙임2 양식에 맞춰져 있다. 다른 서식으로 옮기려면 두 군데를 본다.
 
-- `templates/daily.hwpx` — 양식 파일을 교체한다
-- `tools/fill_hwpx.py`의 `CELL` — 표의 행·열 좌표 맵. 양식이 바뀌면 여기만 고치면 된다
-  (`tools/hwpx.py`는 표를 인덱스가 아니라 "일일 업무일지"라는 내용으로 찾으므로,
-  제목이 다르면 `find_daily_table`도 함께 본다)
+- `templates/` — 양식 파일을 교체한다
+- `tools/fill_hwpx.py`(일일)와 `tools/fill_weekly_hwpx.py`(주간)의 `CELL` — 표의 행·열
+  좌표 맵. 양식이 바뀌면 여기만 고치면 된다. 각 양식의 좌표는 한 곳에만 있고, 검사기는
+  같은 맵을 import해 쓴다
 
-분류 기준·문체·분량 제한은 `.claude/skills/daily-log/SKILL.md`와 `style/guide.md`에 있다.
+`tools/hwpx.py`는 표를 인덱스가 아니라 제목 내용으로 찾는다(`find_table(root, marker)`).
+제목이 다르면 `DAILY_TABLE_MARKER` / `WEEKLY_TABLE_MARKER`를 함께 본다.
+
+양식이 개정돼 셀 구조가 바뀌면 **조용히 어긋난 값을 쓰지 않고 멈춘다.** 주간일지 출석률
+칸처럼 메모를 살려야 하는 자리는 `set_cell_texts`가 글자 조각 수를 세어 대조하므로,
+칸이 늘거나 줄면 그 자리에서 에러가 난다.
+
+분류 기준·문체·분량 제한은 `.claude/skills/*/SKILL.md`와 `style/`에 있다.
 파이썬을 건드릴 일은 거의 없다.
 
 ## 범위 밖
 
-- 붙임2 **주간** 업무일지 — 출석률·미션 진도율이 디스코드가 아니라 운영팀 시트에서 오는
-  별도 데이터라 보류했다. 필요해지면 그 시트를 입력으로 받는 컴포넌트를 따로 만든다.
-  (월간일지 본문에 채우는 주차 블록은 `/monthly-log`가 따로 만든다 — 양식 문서가 아니라
-  붙여넣을 텍스트라 출석·진도 데이터가 필요 없다. 둘은 다른 물건이다.)
+- 운영팀 시트 자동 연동 — 주간일지의 출석률·미션 진도율·이탈 위험 교육생은 디스코드에
+  없는 값이라 `/weekly-log`가 실행할 때마다 사람에게 묻는다. 시트를 직접 읽는 컴포넌트는
+  아직 없다.
 - 사용자 계정 토큰(셀프봇) — Discord ToS 위반이라 지원하지 않는다.
