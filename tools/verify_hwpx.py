@@ -17,7 +17,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from fill_hwpx import CELL, EMPTY, format_date, lines_or_empty
+from fill_hwpx import CELL, EMPTY, format_date, lines_or_empty, status_marks
 from hwpx import BLACK, HH, HP, cell_text, find_daily_table, load_header, load_section, table_cells
 
 # 양식에 원래 들어 있는 안내문구. 하나라도 남아 있으면 그 셀은 채워지지 않은 것이다.
@@ -117,13 +117,18 @@ def check_overflow(path: str, cells) -> list[str]:
 
 def check_against_draft(cells, draft: dict) -> list[str]:
     counts = draft.get("counts") or {}
+    marks = status_marks(draft)
     expected = {
         CELL["date"]: format_date(draft["date"]),
         CELL["author"]: f"{draft['author']} (인)",
         CELL["summary"]: draft["summary"],
+        CELL["operation_status"]: marks["operation"],
         CELL["first_response_count"]: f"총 {int(counts.get('first_response', 0))}건",
+        CELL["first_response_status"]: marks["first_response"],
         CELL["learning_support_count"]: f"총 {int(counts.get('learning_support', 0))}건",
+        CELL["learning_support_status"]: marks["learning_support"],
         CELL["guidance_count"]: f"총 {int(counts.get('guidance', 0))}건",
+        CELL["guidance_status"]: marks["guidance"],
         CELL["inquiry"]: "\n".join(lines_or_empty(draft, "inquiry_lines")),
         CELL["counseling"]: "\n".join(lines_or_empty(draft, "counseling_lines")),
         CELL["guidance"]: "\n".join(lines_or_empty(draft, "guidance_lines")),

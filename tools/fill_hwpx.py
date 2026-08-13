@@ -41,9 +41,13 @@ CELL = {
     "team": (2, 1),
     "summary": (3, 1),
     "operation_note": (5, 4),
+    "operation_status": (5, 3),
     "first_response_count": (6, 4),
+    "first_response_status": (6, 3),
     "learning_support_count": (7, 4),
+    "learning_support_status": (7, 3),
     "guidance_count": (8, 4),
+    "guidance_status": (8, 3),
     "inquiry": (9, 1),
     "counseling": (10, 1),
     "guidance": (11, 1),
@@ -87,6 +91,15 @@ def lines_or_empty(draft: dict, key: str) -> list[str]:
     return lines or [EMPTY]
 
 
+def status_marks(draft: dict) -> dict[str, str]:
+    """수행여부 열의 O/X. 운영지원은 상시 업무라 항상 O, 나머지는 건수로 판단한다."""
+    counts = draft.get("counts") or {}
+    marks = {"operation": "O"}
+    for key in ("first_response", "learning_support", "guidance"):
+        marks[key] = "O" if int(counts.get(key, 0)) > 0 else "X"
+    return marks
+
+
 def set_author(tc, author: str, palette: CharPrPalette) -> None:
     """작성자 칸을 '<이름> (인)'으로 채우되, 양식에 박혀 있던 서명 도장은 살려 둔다.
 
@@ -119,6 +132,9 @@ def fill(draft: dict, template: Path, out: Path) -> Path:
 
     for key in ("first_response", "learning_support", "guidance"):
         set_cell(cell(f"{key}_count"), f"총 {int(counts.get(key, 0))}건", palette)
+
+    for key, mark in status_marks(draft).items():
+        set_cell(cell(f"{key}_status"), mark, palette)
 
     set_cell_lines(cell("inquiry"), lines_or_empty(draft, "inquiry_lines"), palette)
     set_cell_lines(cell("counseling"), lines_or_empty(draft, "counseling_lines"), palette)
