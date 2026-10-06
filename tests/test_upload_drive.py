@@ -13,6 +13,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import unicodedata
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -37,7 +38,8 @@ counter = 0
 
 
 def run(work: Path, config: str, *extra: str, remotes: str = "gdrive:",
-        lsjson: str = "[]", copyto_rc: int = 0, with_rclone: bool = True) -> tuple:
+        lsjson: str = "[]", copyto_rc: int = 0, with_rclone: bool = True,
+        filename: str = FILENAME) -> tuple:
     """업로더를 한 번 돌리고 (종료코드, stdout, stderr, rclone에 넘어간 인자들)을 준다."""
     global counter
     counter += 1
@@ -54,7 +56,7 @@ def run(work: Path, config: str, *extra: str, remotes: str = "gdrive:",
     config_path = case / "config.toml"
     config_path.write_text(config, encoding="utf-8")
 
-    source = case / FILENAME
+    source = case / filename
     source.write_bytes(b"PK\x03\x04 not a real hwpx")
 
     env = {**os.environ, "PATH": str(bindir), "RCLONE_LOG": str(log),
@@ -139,6 +141,16 @@ def main() -> None:
         results.append(check("링크_출력",
                              out.strip().splitlines()[-1:] == ["https://drive.google.com/file/d/FILE123/view"],
                              out.strip() or "(무출력)"))
+
+        # macOS가 만든 자모 분리형(NFD) 이름도 드라이브에는 완성형(NFC)으로 올라가야 Windows에서 안 깨진다
+        nfd = unicodedata.normalize("NFD", FILENAME)
+        code, out, err, args = run(work, configured, lsjson=listing, filename=nfd)
+        # 로컬 원본 경로는 디스크의 이름 그대로 넘겨야 하고, 드라이브 쪽 이름만 바뀐다
+        sent = args[args.index("copyto") + 2] if "copyto" in args else ""
+        ok = code == 0 and sent == target
+        results.append(check("NFD_파일명_NFC로", ok, target if ok else f"{err.strip()} / {args}"))
+        results.append(check("NFD_링크_출력",
+                             out.strip().endswith("FILE123/view"), out.strip() or "(무출력)"))
 
         # 목록 조회가 실패해도 전송은 이미 끝났다. 폴더 링크로라도 안내해야 한다
         code, out, _, _ = run(work, configured, lsjson="깨진 JSON")

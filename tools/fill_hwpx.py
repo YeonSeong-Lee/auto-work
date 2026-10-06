@@ -13,6 +13,7 @@ import argparse
 import datetime as dt
 import json
 import sys
+import unicodedata
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -83,7 +84,8 @@ def default_out(draft: dict) -> Path:
     d = dt.date.fromisoformat(draft["date"])
     author = str(draft["author"]).strip().replace("/", "")
     stem = f"[코디세이]{d.month:02d}{d.day:02d}({WEEKDAYS[d.weekday()]})_{author}_퍼실리테이터 일일업무일지"
-    return Path("out") / f"{stem}.hwpx"
+    # macOS가 넘겨준 자모 분리형(NFD) 이름은 Windows에서 ㅋㅗㄷㅣ처럼 깨져 보인다
+    return Path("out") / unicodedata.normalize("NFC", f"{stem}.hwpx")
 
 
 def lines_or_empty(draft: dict, key: str) -> list[str]:

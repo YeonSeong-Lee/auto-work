@@ -18,6 +18,7 @@ import argparse
 import datetime as dt
 import json
 import sys
+import unicodedata
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -104,7 +105,9 @@ def default_out(draft: dict) -> Path:
     start, end = week_range(draft)
     author = str(draft["author"]).strip().replace("/", "")
     span = f"{start.month:02d}{start.day:02d}~{end.month:02d}{end.day:02d}"
-    return Path("out") / f"[코디세이]{span}_{author}_퍼실리테이터_주간일지.hwpx"
+    # macOS가 넘겨준 자모 분리형(NFD) 이름은 Windows에서 ㅋㅗㄷㅣ처럼 깨져 보인다
+    name = f"[코디세이]{span}_{author}_퍼실리테이터_주간일지.hwpx"
+    return Path("out") / unicodedata.normalize("NFC", name)
 
 
 def lines_or_empty(draft: dict, key: str) -> list[str]:

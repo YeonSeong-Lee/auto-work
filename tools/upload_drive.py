@@ -10,6 +10,9 @@
 전송은 rclone에 맡긴다. OAuth 토큰 갱신을 직접 다루지 않기 위해서다.
 `rclone copyto`는 같은 이름이 있으면 그 파일을 갱신하므로(파일 ID가 유지된다) 초안을 고쳐
 다시 올려도 폴더에 하루치 파일이 하나만 남고 공유 링크도 그대로다.
+
+드라이브에 올리는 이름은 항상 완성형(NFC)으로 바꾼다. macOS에서 넘어온 자모 분리형(NFD)
+이름은 맥에선 멀쩡해 보여도 Windows에서 ㅋㅗㄷㅣㅅㅔㅇㅣ처럼 깨져 보이기 때문이다.
 """
 
 from __future__ import annotations
@@ -21,6 +24,7 @@ import shutil
 import subprocess
 import sys
 import tomllib
+import unicodedata
 import urllib.parse
 from pathlib import Path
 
@@ -97,7 +101,7 @@ def web_link(remote: str, folder: str, name: str) -> str:
     if listed.returncode == 0:
         try:
             for entry in json.loads(listed.stdout):
-                if entry.get("Name") == name and entry.get("ID"):
+                if unicodedata.normalize("NFC", entry.get("Name", "")) == name and entry.get("ID"):
                     return f"https://drive.google.com/file/d/{entry['ID']}/view"
         except json.JSONDecodeError:
             pass
@@ -125,11 +129,12 @@ def main() -> None:
 
     remote = config.get("remote", DEFAULT_REMOTE)
     require_remote(remote)
-    target = f"{remote},root_folder_id={folder}:{source.name}"
+    name = unicodedata.normalize("NFC", source.name)
+    target = f"{remote},root_folder_id={folder}:{name}"
 
     if args.dry_run:
         print(f"업로드 대상: {remote}: 폴더 {folder}")
-        print(f"파일명: {source.name}")
+        print(f"파일명: {name}")
         return
 
     result = rclone(["copyto", str(source), target])
@@ -140,7 +145,7 @@ def main() -> None:
             f"파일은 {source} 에 그대로 있습니다. 폴더 ID와 접근 권한을 확인하세요."
         )
 
-    print(web_link(remote, folder, source.name))
+    print(web_link(remote, folder, name))
 
 
 if __name__ == "__main__":
