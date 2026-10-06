@@ -60,6 +60,7 @@ ALLOWED=(
   "Bash(python3 tools/verify_hwpx.py:*)"
   "Bash(python3 tools/fetch_discord.py:*)"
   "Bash(python3 tools/upload_drive.py:*)"
+  "Bash(python3 tools/form_link.py:*)"
   "Read"
   "Edit(notes/**)"
   "Edit(drafts/**)"
@@ -82,6 +83,12 @@ if [ ! -f "$LAST" ]; then
 fi
 
 echo "$LAST"
+
+# 활동기록부 폼 링크도 앞줄에 섞여 있다. 드라이브 블록이 exit 2로 빠져나갈 수 있으므로
+# 그보다 먼저 집어 준다 — 업로드가 실패해도 폼은 따로 낼 수 있다.
+# 미리 채워진 링크일 뿐이라 여기서 제출되지는 않는다. 열어서 직접 제출 버튼을 눌러야 한다.
+FORM="$(printf '%s\n' "$OUTPUT" | grep -o 'https://docs\.google\.com/forms/[^ )"]*' | tail -1)"
+[ -n "$FORM" ] && echo "폼(제출 안 됨, 직접 눌러야 함): $FORM" >&2
 
 # 드라이브 링크는 앞줄에 섞여 있다. 마지막 줄 계약을 건드리지 않으려고 grep으로 집는다.
 # stdout은 경로 전용이라 open "$(scripts/log.sh)" 가 계속 통해야 한다.

@@ -8,6 +8,10 @@ monthly/
 __pycache__/
 *.pyc
 .omc/
+
+# 폼에서 읽어온 문항·보기 목록 캐시. 조직 내부 양식이라 올리지 않는다
+# (테스트가 쓰는 더미 정의는 fixtures/sample_form_schema.json).
+.cache/
 .DS_Store
 .claude/settings.local.json
 
